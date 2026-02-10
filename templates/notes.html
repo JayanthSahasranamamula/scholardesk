@@ -1,0 +1,17 @@
+<h2>Your Notes</h2>
+
+<a href="/notes/new">New Note</a>
+<br><br>
+
+{% for note in notes %}
+
+<h3>{{ note.title }}</h3>
+
+<p>{{ note.content }}</p>
+
+<a href="/notes/{{ note.id }}/edit">Edit</a> |
+<a href="/notes/{{ note.id }}/delete">Delete</a>
+
+<hr>
+
+{% endfor %}

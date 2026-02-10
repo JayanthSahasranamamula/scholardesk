@@ -1,7 +1,15 @@
 <h1>Welcome to ScholarDesk</h1>
 
-<p>Your academic notes manager.</p>
+{% if current_user.is_authenticated %}
 
-<a href="/register">Register</a> |
-<a href="/login">Login</a> |
+<p>Hello, {{ current_user.username }}</p>
+
+<a href="/notes">My Notes</a> |
 <a href="/logout">Logout</a>
+
+{% else %}
+
+<a href="/login">Login</a> |
+<a href="/register">Register</a>
+
+{% endif %}

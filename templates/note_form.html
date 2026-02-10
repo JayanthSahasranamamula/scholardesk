@@ -1,0 +1,15 @@
+<h2>{{ legend }}</h2>
+
+<form method="POST">
+
+    {{ form.hidden_tag() }}
+
+    {{ form.title.label }}<br>
+    {{ form.title }}<br><br>
+
+    {{ form.content.label }}<br>
+    {{ form.content(rows=5) }}<br><br>
+
+    {{ form.submit }}
+
+</form>

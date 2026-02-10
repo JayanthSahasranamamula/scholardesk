@@ -1,10 +1,10 @@
 from flask import Flask, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_user, logout_user, login_required
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
-
-from models import db, User
-from forms import RegistrationForm, LoginForm
+from models import db, User, Note
+from forms import RegistrationForm, LoginForm, NoteForm
+from flask_login import current_user
 
 
 app = Flask(__name__)
@@ -32,6 +32,17 @@ def load_user(user_id):
 def home():
     return render_template("index.html")
 
+@app.route("/notes")
+@login_required
+def notes():
+    user_notes = Note.query.filter_by(
+        user_id=current_user.id
+    ).all()
+
+    return render_template(
+        "notes.html",
+        notes=user_notes
+    )
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -86,6 +97,72 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("home"))
+
+@app.route("/notes/new", methods=["GET", "POST"])
+@login_required
+def new_note():
+
+    form = NoteForm()
+
+    if form.validate_on_submit():
+
+        note = Note(
+            title=form.title.data,
+            content=form.content.data,
+            user=current_user
+        )
+
+        db.session.add(note)
+        db.session.commit()
+
+        return redirect(url_for("notes"))
+
+    return render_template(
+        "note_form.html",
+        form=form,
+        legend="New Note"
+    )
+
+@app.route("/notes/<int:note_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_note(note_id):
+
+    note = Note.query.get_or_404(note_id)
+
+    if note.user != current_user:
+        return redirect(url_for("notes"))
+
+    form = NoteForm(obj=note)
+
+    if form.validate_on_submit():
+
+        note.title = form.title.data
+        note.content = form.content.data
+
+        db.session.commit()
+
+        return redirect(url_for("notes"))
+
+    return render_template(
+        "note_form.html",
+        form=form,
+        legend="Edit Note"
+    )
+
+
+@app.route("/notes/<int:note_id>/delete")
+@login_required
+def delete_note(note_id):
+
+    note = Note.query.get_or_404(note_id)
+
+    if note.user != current_user:
+        return redirect(url_for("notes"))
+
+    db.session.delete(note)
+    db.session.commit()
+
+    return redirect(url_for("notes"))
 
 
 if __name__ == "__main__":
