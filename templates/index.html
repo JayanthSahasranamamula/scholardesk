@@ -1,15 +1,18 @@
-<h1>Welcome to ScholarDesk</h1>
+{% extends "base.html" %}
 
-{% if current_user.is_authenticated %}
+{% block content %}
 
-<p>Hello, {{ current_user.username }}</p>
+<div class="text-center">
+    <h1>Welcome to ScholarDesk</h1>
 
-<a href="/notes">My Notes</a> |
-<a href="/logout">Logout</a>
+    {% if current_user.is_authenticated %}
+        <p class="lead">Hello, {{ current_user.username }}</p>
+        <a class="btn btn-primary" href="/notes">Go to My Notes</a>
+    {% else %}
+        <p class="lead">Your academic notes manager.</p>
+        <a class="btn btn-primary" href="/login">Login</a>
+        <a class="btn btn-outline-secondary" href="/register">Register</a>
+    {% endif %}
+</div>
 
-{% else %}
-
-<a href="/login">Login</a> |
-<a href="/register">Register</a>
-
-{% endif %}
+{% endblock %}

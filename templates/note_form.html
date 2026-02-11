@@ -1,15 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+
 <h2>{{ legend }}</h2>
 
-<form method="POST">
+<form method="POST" class="mt-4">
 
     {{ form.hidden_tag() }}
 
-    {{ form.title.label }}<br>
-    {{ form.title }}<br><br>
+    <div class="mb-3">
+        {{ form.title.label(class="form-label") }}
+        {{ form.title(class="form-control") }}
+    </div>
 
-    {{ form.content.label }}<br>
-    {{ form.content(rows=5) }}<br><br>
+    <div class="mb-3">
+        {{ form.content.label(class="form-label") }}
+        {{ form.content(class="form-control", rows=5) }}
+    </div>
 
-    {{ form.submit }}
+    {{ form.submit(class="btn btn-primary") }}
 
 </form>
+
+{% endblock %}
