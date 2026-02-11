@@ -107,10 +107,14 @@ def new_note():
     if form.validate_on_submit():
 
         note = Note(
-            title=form.title.data,
-            content=form.content.data,
-            user=current_user
-        )
+    title=form.title.data,
+    content=form.content.data,
+    subject=form.subject.data,
+    tags=form.tags.data,
+    resource_link=form.resource_link.data,
+    user=current_user
+)
+
 
         db.session.add(note)
         db.session.commit()
@@ -138,6 +142,9 @@ def edit_note(note_id):
 
         note.title = form.title.data
         note.content = form.content.data
+        note.subject = form.subject.data
+        note.tags = form.tags.data
+        note.resource_link = form.resource_link.data
 
         db.session.commit()
 

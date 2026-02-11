@@ -14,11 +14,18 @@ class User(db.Model, UserMixin):
         return f"User('{self.username}', '{self.email}')"
 
 class Note(db.Model):
+
     id = db.Column(db.Integer, primary_key=True)
 
     title = db.Column(db.String(100), nullable=False)
 
     content = db.Column(db.Text, nullable=False)
+
+    subject = db.Column(db.String(50), nullable=False)
+
+    tags = db.Column(db.String(200))
+
+    resource_link = db.Column(db.String(300))
 
     user_id = db.Column(
         db.Integer,
@@ -29,4 +36,4 @@ class Note(db.Model):
     user = db.relationship("User", backref="notes")
 
     def __repr__(self):
-        return f"Note('{self.title}')"
+        return f"Note('{self.title}', '{self.subject}')"

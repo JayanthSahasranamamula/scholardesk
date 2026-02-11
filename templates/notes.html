@@ -11,15 +11,38 @@
     {% for note in notes %}
         <div class="card mb-3">
             <div class="card-body">
-                <h5 class="card-title">{{ note.title }}</h5>
-                <p class="card-text">{{ note.content }}</p>
 
-                <a class="btn btn-sm btn-outline-primary"
-                   href="/notes/{{ note.id }}/edit">Edit</a>
+    <h5 class="card-title">{{ note.title }}</h5>
 
-                <a class="btn btn-sm btn-outline-danger"
-                   href="/notes/{{ note.id }}/delete">Delete</a>
-            </div>
+    <h6 class="card-subtitle mb-2 text-muted">
+        {{ note.subject }}
+    </h6>
+
+    <p class="card-text">{{ note.content }}</p>
+
+    {% if note.tags %}
+        <p>
+            <span class="badge bg-secondary">
+                {{ note.tags }}
+            </span>
+        </p>
+    {% endif %}
+
+    {% if note.resource_link %}
+        <p>
+            <a href="{{ note.resource_link }}" target="_blank">
+                Related Resource
+            </a>
+        </p>
+    {% endif %}
+
+    <a class="btn btn-sm btn-outline-primary"
+       href="/notes/{{ note.id }}/edit">Edit</a>
+
+    <a class="btn btn-sm btn-outline-danger"
+       href="/notes/{{ note.id }}/delete">Delete</a>
+
+</div>
         </div>
     {% endfor %}
 

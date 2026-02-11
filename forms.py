@@ -50,6 +50,19 @@ class NoteForm(FlaskForm):
         validators=[DataRequired(), Length(max=100)]
     )
 
+    subject = StringField(
+        "Subject",
+        validators=[DataRequired(), Length(max=50)]
+    )
+
+    tags = StringField(
+        "Tags (comma separated)"
+    )
+
+    resource_link = StringField(
+        "Resource Link"
+    )
+
     content = TextAreaField(
         "Content",
         validators=[DataRequired()]
