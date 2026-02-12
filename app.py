@@ -1,10 +1,9 @@
 from flask import Flask, render_template, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-
 from models import User, Note
 from forms import RegistrationForm, LoginForm, NoteForm
 from extensions import db, bcrypt, login_manager
-
+import os
 
 app = Flask(__name__)
 
@@ -13,8 +12,12 @@ app = Flask(__name__)
 # =====================
 
 app.config["SECRET_KEY"] = "dev-secret-key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
+database_url = os.environ.get("DATABASE_URL")
 
+if database_url:
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
 
 # =====================
 # Initialise Extensions
