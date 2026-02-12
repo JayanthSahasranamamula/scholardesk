@@ -1,23 +1,29 @@
 from flask import Flask, render_template, redirect, url_for, flash, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from flask_bcrypt import Bcrypt
-from models import db, User, Note
+from flask_login import login_user, logout_user, login_required, current_user
+
+from models import User, Note
 from forms import RegistrationForm, LoginForm, NoteForm
-from flask_login import current_user
+from extensions import db, bcrypt, login_manager
 
 
 app = Flask(__name__)
 
-# Config
+# =====================
+# Configuration
+# =====================
+
 app.config["SECRET_KEY"] = "dev-secret-key"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
 
-# Init
-db.init_app(app)
-bcrypt = Bcrypt(app)
 
-login_manager = LoginManager(app)
+# =====================
+# Initialise Extensions
+# =====================
+
+db.init_app(app)
+bcrypt.init_app(app)
+
+login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message_category = "info"
 
@@ -27,11 +33,14 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# Routes
+# =====================
+# Main Routes
+# =====================
 
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 @app.route("/notes")
 @login_required
@@ -45,52 +54,66 @@ def notes():
         notes=user_notes
     )
 
+
+# =====================
+# Authentication
+# =====================
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    form = RegistrationForm()
 
-    if form.validate_on_submit():
+    registration_form = RegistrationForm()
 
-        hashed_pw = bcrypt.generate_password_hash(
-            form.password.data
+    if registration_form.validate_on_submit():
+
+        hashed_password = bcrypt.generate_password_hash(
+            registration_form.password.data
         ).decode("utf-8")
 
-        user = User(
-            username=form.username.data,
-            email=form.email.data,
-            password=hashed_pw
+        new_user = User(
+            username=registration_form.username.data,
+            email=registration_form.email.data,
+            password=hashed_password
         )
 
-        db.session.add(user)
+        db.session.add(new_user)
         db.session.commit()
 
         flash("Account created! You can now log in.", "success")
 
         return redirect(url_for("login"))
 
-    return render_template("register.html", form=form)
+    return render_template(
+        "register.html",
+        form=registration_form
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    form = LoginForm()
 
-    if form.validate_on_submit():
+    login_form = LoginForm()
 
-        user = User.query.filter_by(
-            email=form.email.data
+    if login_form.validate_on_submit():
+
+        existing_user = User.query.filter_by(
+            email=login_form.email.data
         ).first()
 
-        if user and bcrypt.check_password_hash(
-            user.password, form.password.data
+        if existing_user and bcrypt.check_password_hash(
+            existing_user.password,
+            login_form.password.data
         ):
-            login_user(user)
+
+            login_user(existing_user)
             return redirect(url_for("home"))
 
-        else:
-            flash("Login failed. Check email and password.", "danger")
+        flash("Login failed. Check email and password.", "danger")
 
-    return render_template("login.html", form=form)
+    return render_template(
+        "login.html",
+        form=login_form
+    )
 
 
 @app.route("/logout")
@@ -99,53 +122,58 @@ def logout():
     logout_user()
     return redirect(url_for("home"))
 
+
+# =====================
+# Notes CRUD
+# =====================
+
 @app.route("/notes/new", methods=["GET", "POST"])
 @login_required
 def new_note():
 
-    form = NoteForm()
+    note_form = NoteForm()
 
-    if form.validate_on_submit():
+    if note_form.validate_on_submit():
 
-        note = Note(
-    title=form.title.data,
-    content=form.content.data,
-    subject=form.subject.data,
-    tags=form.tags.data,
-    resource_link=form.resource_link.data,
-    user=current_user
-)
+        new_note = Note(
+            title=note_form.title.data,
+            content=note_form.content.data,
+            subject=note_form.subject.data,
+            tags=note_form.tags.data,
+            resource_link=note_form.resource_link.data,
+            user=current_user
+        )
 
-
-        db.session.add(note)
+        db.session.add(new_note)
         db.session.commit()
 
         return redirect(url_for("notes"))
 
     return render_template(
         "note_form.html",
-        form=form,
+        form=note_form,
         legend="New Note"
     )
+
 
 @app.route("/notes/<int:note_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_note(note_id):
 
-    note = Note.query.get_or_404(note_id)
+    existing_note = Note.query.get_or_404(note_id)
 
-    if note.user != current_user:
+    if existing_note.user != current_user:
         return redirect(url_for("notes"))
 
-    form = NoteForm(obj=note)
+    note_form = NoteForm(obj=existing_note)
 
-    if form.validate_on_submit():
+    if note_form.validate_on_submit():
 
-        note.title = form.title.data
-        note.content = form.content.data
-        note.subject = form.subject.data
-        note.tags = form.tags.data
-        note.resource_link = form.resource_link.data
+        existing_note.title = note_form.title.data
+        existing_note.content = note_form.content.data
+        existing_note.subject = note_form.subject.data
+        existing_note.tags = note_form.tags.data
+        existing_note.resource_link = note_form.resource_link.data
 
         db.session.commit()
 
@@ -153,7 +181,7 @@ def edit_note(note_id):
 
     return render_template(
         "note_form.html",
-        form=form,
+        form=note_form,
         legend="Edit Note"
     )
 
@@ -162,40 +190,47 @@ def edit_note(note_id):
 @login_required
 def delete_note(note_id):
 
-    note = Note.query.get_or_404(note_id)
+    existing_note = Note.query.get_or_404(note_id)
 
-    if note.user != current_user:
+    if existing_note.user != current_user:
         return redirect(url_for("notes"))
 
-    db.session.delete(note)
+    db.session.delete(existing_note)
     db.session.commit()
 
     return redirect(url_for("notes"))
+
+
+# =====================
+# API Endpoints
+# =====================
 
 @app.route("/api/user")
 @login_required
 def api_user():
 
-    user_data = {
+    current_user_data = {
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email
     }
 
-    return jsonify(user_data)
+    return jsonify(current_user_data)
+
 
 @app.route("/api/notes")
 @login_required
 def api_notes():
 
-    notes = Note.query.filter_by(
+    user_notes = Note.query.filter_by(
         user_id=current_user.id
     ).all()
 
-    notes_list = []
+    serialized_notes = []
 
-    for note in notes:
-        notes_list.append({
+    for note in user_notes:
+
+        serialized_notes.append({
             "id": note.id,
             "title": note.title,
             "content": note.content,
@@ -204,9 +239,15 @@ def api_notes():
             "resource_link": note.resource_link
         })
 
-    return jsonify(notes_list)
+    return jsonify(serialized_notes)
+
+
+# =====================
+# App Runner
+# =====================
 
 if __name__ == "__main__":
+
     with app.app_context():
         db.create_all()
 
