@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash
+from flask import Flask, render_template, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
@@ -19,6 +19,7 @@ bcrypt = Bcrypt(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+login_manager.login_message_category = "info"
 
 
 @login_manager.user_loader
@@ -171,6 +172,39 @@ def delete_note(note_id):
 
     return redirect(url_for("notes"))
 
+@app.route("/api/user")
+@login_required
+def api_user():
+
+    user_data = {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email
+    }
+
+    return jsonify(user_data)
+
+@app.route("/api/notes")
+@login_required
+def api_notes():
+
+    notes = Note.query.filter_by(
+        user_id=current_user.id
+    ).all()
+
+    notes_list = []
+
+    for note in notes:
+        notes_list.append({
+            "id": note.id,
+            "title": note.title,
+            "content": note.content,
+            "subject": note.subject,
+            "tags": note.tags,
+            "resource_link": note.resource_link
+        })
+
+    return jsonify(notes_list)
 
 if __name__ == "__main__":
     with app.app_context():
