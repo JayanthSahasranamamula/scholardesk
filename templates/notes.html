@@ -1,53 +1,142 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Your Notes</h2>
-    <a class="btn btn-success" href="/notes/new">New Note</a>
+<!-- ===================== -->
+<!-- Filter / Search Bar  -->
+<!-- ===================== -->
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <form method="GET" action="{{ url_for('notes') }}">
+            <div class="row g-2">
+
+                <div class="col-md-4">
+                    <input
+                        type="text"
+                        name="q"
+                        class="form-control"
+                        placeholder="Search title or content"
+                        value="{{ request.args.get('q', '') }}"
+                    >
+                </div>
+
+                <div class="col-md-3">
+                    <input
+                        type="text"
+                        name="subject"
+                        class="form-control"
+                        placeholder="Filter by subject"
+                        value="{{ request.args.get('subject', '') }}"
+                    >
+                </div>
+
+                <div class="col-md-3">
+                    <input
+                        type="text"
+                        name="tag"
+                        class="form-control"
+                        placeholder="Filter by tag"
+                        value="{{ request.args.get('tag', '') }}"
+                    >
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        Apply
+                    </button>
+                </div>
+
+            </div>
+
+            {% if request.args %}
+                <div class="mt-3">
+                    <a href="{{ url_for('notes') }}" class="btn btn-sm btn-outline-secondary">
+                        Clear Filters
+                    </a>
+                </div>
+            {% endif %}
+
+        </form>
+
+    </div>
 </div>
+
+
+<!-- ===================== -->
+<!-- Header Section       -->
+<!-- ===================== -->
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Your Notes</h2>
+    <a class="btn btn-success" href="{{ url_for('new_note') }}">
+        New Note
+    </a>
+</div>
+
+
+<!-- ===================== -->
+<!-- Notes Display        -->
+<!-- ===================== -->
 
 {% if notes %}
 
     {% for note in notes %}
-        <div class="card mb-3">
+
+        <div class="card mb-3 shadow-sm">
             <div class="card-body">
 
-    <h5 class="card-title">{{ note.title }}</h5>
+                <h5 class="card-title">{{ note.title }}</h5>
 
-    <h6 class="card-subtitle mb-2 text-muted">
-        {{ note.subject }}
-    </h6>
+                <h6 class="card-subtitle mb-2 text-muted">
+                    {{ note.subject }}
+                </h6>
 
-    <p class="card-text">{{ note.content }}</p>
+                <p class="card-text">
+                    {{ note.content }}
+                </p>
 
-    {% if note.tags %}
-        <p>
-            <span class="badge bg-secondary">
-                {{ note.tags }}
-            </span>
-        </p>
-    {% endif %}
+                {% if note.tags %}
+                    <div class="mb-2">
+                        {% for tag in note.tags.split(',') %}
+                            <span class="badge bg-secondary me-1">
+                                {{ tag.strip() }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
 
-    {% if note.resource_link %}
-        <p>
-            <a href="{{ note.resource_link }}" target="_blank">
-                Related Resource
-            </a>
-        </p>
-    {% endif %}
+                {% if note.resource_link %}
+                    <p>
+                        <a href="{{ note.resource_link }}" target="_blank">
+                            Related Resource
+                        </a>
+                    </p>
+                {% endif %}
 
-    <a class="btn btn-sm btn-outline-primary"
-       href="/notes/{{ note.id }}/edit">Edit</a>
+                <div class="mt-3">
+                    <a class="btn btn-sm btn-outline-primary"
+                       href="{{ url_for('edit_note', note_id=note.id) }}">
+                        Edit
+                    </a>
 
-    <a class="btn btn-sm btn-outline-danger"
-       href="/notes/{{ note.id }}/delete">Delete</a>
+                    <a class="btn btn-sm btn-outline-danger"
+                       href="{{ url_for('delete_note', note_id=note.id) }}">
+                        Delete
+                    </a>
+                </div>
 
-</div>
+            </div>
         </div>
+
     {% endfor %}
 
 {% else %}
-    <p>No notes yet.</p>
+
+    <div class="alert alert-info">
+        No notes found.
+    </div>
+
 {% endif %}
 
 {% endblock %}

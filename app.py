@@ -1,9 +1,10 @@
-from flask import Flask, render_template, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, jsonify, request
 from flask_login import login_user, logout_user, login_required, current_user
 from models import User, Note
 from forms import RegistrationForm, LoginForm, NoteForm
 from extensions import db, bcrypt, login_manager
 import os
+from sqlalchemy import or_
 
 app = Flask(__name__)
 
@@ -140,32 +141,39 @@ def logout():
 # Notes CRUD
 # =====================
 
-@app.route("/notes/new", methods=["GET", "POST"])
+@app.route("/notes")
 @login_required
-def new_note():
+def notes():
 
-    note_form = NoteForm()
+    search_query = request.args.get("q")
+    subject_filter = request.args.get("subject")
+    tag_filter = request.args.get("tag")
 
-    if note_form.validate_on_submit():
+    query = Note.query.filter_by(user_id=current_user.id)
 
-        new_note = Note(
-            title=note_form.title.data,
-            content=note_form.content.data,
-            subject=note_form.subject.data,
-            tags=note_form.tags.data,
-            resource_link=note_form.resource_link.data,
-            user=current_user
+    if search_query:
+        query = query.filter(
+            or_(
+                Note.title.ilike(f"%{search_query}%"),
+                Note.content.ilike(f"%{search_query}%")
+            )
         )
 
-        db.session.add(new_note)
-        db.session.commit()
+    if subject_filter:
+        query = query.filter(
+            Note.subject.ilike(f"%{subject_filter}%")
+        )
 
-        return redirect(url_for("notes"))
+    if tag_filter:
+        query = query.filter(
+            Note.tags.ilike(f"%{tag_filter}%")
+        )
+
+    filtered_notes = query.all()
 
     return render_template(
-        "note_form.html",
-        form=note_form,
-        legend="New Note"
+        "notes.html",
+        notes=filtered_notes
     )
 
 
