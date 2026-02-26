@@ -3,8 +3,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 from models import User, Note
 from forms import RegistrationForm, LoginForm, NoteForm
 from extensions import db, bcrypt, login_manager
-import os
 from sqlalchemy import or_
+import os
 
 app = Flask(__name__)
 
@@ -56,16 +56,43 @@ def home():
     return render_template("index.html")
 
 
+# =====================
+# Notes (Advanced Search + Filter)
+# =====================
+
 @app.route("/notes")
 @login_required
 def notes():
-    user_notes = Note.query.filter_by(
-        user_id=current_user.id
-    ).all()
+
+    search_query = request.args.get("q")
+    subject_filter = request.args.get("subject")
+    tag_filter = request.args.get("tag")
+
+    query = Note.query.filter_by(user_id=current_user.id)
+
+    if search_query:
+        query = query.filter(
+            or_(
+                Note.title.ilike(f"%{search_query}%"),
+                Note.content.ilike(f"%{search_query}%")
+            )
+        )
+
+    if subject_filter:
+        query = query.filter(
+            Note.subject.ilike(f"%{subject_filter}%")
+        )
+
+    if tag_filter:
+        query = query.filter(
+            Note.tags.ilike(f"%{tag_filter}%")
+        )
+
+    filtered_notes = query.all()
 
     return render_template(
         "notes.html",
-        notes=user_notes
+        notes=filtered_notes
     )
 
 
@@ -141,39 +168,32 @@ def logout():
 # Notes CRUD
 # =====================
 
-@app.route("/notes")
+@app.route("/notes/new", methods=["GET", "POST"])
 @login_required
-def notes():
+def new_note():
 
-    search_query = request.args.get("q")
-    subject_filter = request.args.get("subject")
-    tag_filter = request.args.get("tag")
+    note_form = NoteForm()
 
-    query = Note.query.filter_by(user_id=current_user.id)
+    if note_form.validate_on_submit():
 
-    if search_query:
-        query = query.filter(
-            or_(
-                Note.title.ilike(f"%{search_query}%"),
-                Note.content.ilike(f"%{search_query}%")
-            )
+        new_note = Note(
+            title=note_form.title.data,
+            content=note_form.content.data,
+            subject=note_form.subject.data,
+            tags=note_form.tags.data,
+            resource_link=note_form.resource_link.data,
+            user=current_user
         )
 
-    if subject_filter:
-        query = query.filter(
-            Note.subject.ilike(f"%{subject_filter}%")
-        )
+        db.session.add(new_note)
+        db.session.commit()
 
-    if tag_filter:
-        query = query.filter(
-            Note.tags.ilike(f"%{tag_filter}%")
-        )
-
-    filtered_notes = query.all()
+        return redirect(url_for("notes"))
 
     return render_template(
-        "notes.html",
-        notes=filtered_notes
+        "note_form.html",
+        form=note_form,
+        legend="New Note"
     )
 
 
@@ -250,7 +270,6 @@ def api_notes():
     serialized_notes = []
 
     for note in user_notes:
-
         serialized_notes.append({
             "id": note.id,
             "title": note.title,
@@ -264,7 +283,7 @@ def api_notes():
 
 
 # =====================
-# App Runner
+# Database Initialisation
 # =====================
 
 with app.app_context():
