@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, flash, jsonify, request
 from flask_login import login_user, logout_user, login_required, current_user
-from models import User, Note
+from models import User, Note, Tag
 from forms import RegistrationForm, LoginForm, NoteForm
 from extensions import db, bcrypt, login_manager
 from sqlalchemy import or_
@@ -48,7 +48,7 @@ def load_user(user_id):
 
 
 # =====================
-# Main Routes
+# Home
 # =====================
 
 @app.route("/")
@@ -57,7 +57,7 @@ def home():
 
 
 # =====================
-# Notes (Advanced Search + Filter)
+# Notes (Search + Relational Tag Filtering)
 # =====================
 
 @app.route("/notes")
@@ -84,11 +84,11 @@ def notes():
         )
 
     if tag_filter:
-        query = query.filter(
-            Note.tags.ilike(f"%{tag_filter}%")
+        query = query.join(Note.tags).filter(
+            Tag.name.ilike(f"%{tag_filter.lower()}%")
         )
 
-    filtered_notes = query.all()
+    filtered_notes = query.distinct().all()
 
     return render_template(
         "notes.html",
@@ -180,10 +180,24 @@ def new_note():
             title=note_form.title.data,
             content=note_form.content.data,
             subject=note_form.subject.data,
-            tags=note_form.tags.data,
             resource_link=note_form.resource_link.data,
             user=current_user
         )
+
+        # Process tags (many-to-many)
+        tag_names = note_form.tags.data.split(",")
+
+        for name in tag_names:
+            clean_name = name.strip().lower()
+
+            if clean_name:
+                tag = Tag.query.filter_by(name=clean_name).first()
+
+                if not tag:
+                    tag = Tag(name=clean_name)
+                    db.session.add(tag)
+
+                new_note.tags.append(tag)
 
         db.session.add(new_note)
         db.session.commit()
@@ -213,12 +227,31 @@ def edit_note(note_id):
         existing_note.title = note_form.title.data
         existing_note.content = note_form.content.data
         existing_note.subject = note_form.subject.data
-        existing_note.tags = note_form.tags.data
         existing_note.resource_link = note_form.resource_link.data
+
+        # Clear existing tags
+        existing_note.tags.clear()
+
+        tag_names = note_form.tags.data.split(",")
+
+        for name in tag_names:
+            clean_name = name.strip().lower()
+
+            if clean_name:
+                tag = Tag.query.filter_by(name=clean_name).first()
+
+                if not tag:
+                    tag = Tag(name=clean_name)
+                    db.session.add(tag)
+
+                existing_note.tags.append(tag)
 
         db.session.commit()
 
         return redirect(url_for("notes"))
+
+    # Prepopulate tags field as comma string
+    note_form.tags.data = ", ".join(tag.name for tag in existing_note.tags)
 
     return render_template(
         "note_form.html",
@@ -250,13 +283,11 @@ def delete_note(note_id):
 @login_required
 def api_user():
 
-    current_user_data = {
+    return jsonify({
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email
-    }
-
-    return jsonify(current_user_data)
+    })
 
 
 @app.route("/api/notes")
@@ -275,7 +306,7 @@ def api_notes():
             "title": note.title,
             "content": note.content,
             "subject": note.subject,
-            "tags": note.tags,
+            "tags": [tag.name for tag in note.tags],
             "resource_link": note.resource_link
         })
 
