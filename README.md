@@ -79,7 +79,7 @@ These endpoints demonstrate backend data serialization and authenticated REST-st
 2. Gunicorn (WSGI server)
 
 # 📦 Project Structure
-
+```
 scholardesk/
 │
 ├── app.py
@@ -90,6 +90,7 @@ scholardesk/
 ├── tests/
 ├── requirements.txt
 └── README.md
+```
 
 1. app.py – Application routes and configuration
 2. models.py – SQLAlchemy models
