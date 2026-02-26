@@ -11,8 +11,23 @@ app = Flask(__name__)
 # Configuration
 # =====================
 
-app.config["SECRET_KEY"] = "dev-secret-key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
+app.config["SECRET_KEY"] = os.environ.get(
+    "SECRET_KEY",
+    "dev-secret-key"
+)
+
+database_url = os.environ.get("DATABASE_URL")
+
+if database_url:
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace(
+            "postgres://",
+            "postgresql://",
+            1
+        )
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
 
 # =====================
 # Initialise Extensions
