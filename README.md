@@ -1,84 +1,205 @@
 # 📚 ScholarDesk
 
-A full-stack academic resource manager built with Flask.
+A full-stack academic resource manager built with Flask and PostgreSQL.
 
-ScholarDesk is a web application designed to help students organise their notes, subjects, tags, and reference links in one structured system. It goes beyond simple note-taking by introducing categorisation, tagging, and resource management — all backed by authentication, a relational database, and REST-style API endpoints.
+ScholarDesk is a production-deployed web application designed to help students organise notes, subjects, relational tags, and reference links in a structured, searchable system. It combines authentication, relational database modelling, REST-style API endpoints, and cloud deployment into a cohesive backend project.
 
-This project was built as a practical exploration of backend development, database design, and cloud deployment.
+This project was built as a practical exploration of full-stack development, database architecture, and deployment in a real production environment.
 
-**Live Application:**
+**Live Application:**  
 https://scholardesk.onrender.com
+
+---
 
 # 🚀 Features
 
-**🔐 Authentication**
-1. User registration with secure password hashing (bcrypt)
-2. Login and logout functionality
-3. CSRF protection using Flask-WTF
-4. Session management via Flask-Login
+## 🔐 Authentication
 
-**📝 Notes System (Full CRUD)**
-1. Create new notes
-2. Edit existing notes
-3. Delete notes
-4. View all notes associated with the logged-in user
+- Secure user registration with bcrypt password hashing  
+- Login and logout via Flask-Login  
+- CSRF protection using Flask-WTF  
+- Session-based authentication  
+- Environment-based secret key configuration for production  
 
-**📂 Subject & Tag Management**
-1. Assign each note to a subject
-2. Add comma-separated tags
-3. Categorise and organise content clearly
+---
 
-**🔗 Resource Linking**
-1. Attach external links to notes
-2. Clickable references open in a new tab
-3. Enables ScholarDesk to function as a knowledge hub
+## 📝 Notes System (Full CRUD)
 
-**🌐 API Endpoints**
-1. /api/user – Returns authenticated user information in JSON
-2. /api/notes – Returns all user notes in JSON format
+ScholarDesk provides a complete CRUD (Create, Read, Update, Delete) workflow for managing academic notes.
 
-These endpoints demonstrate backend data serialization and authenticated REST-style responses.
+Users can:
 
-**🎨 UI & UX**
-1. Bootstrap-based responsive layout
-2. Clean navigation bar with authentication awareness
-3. Flash messaging for feedback
-4. Card-based note display
+- Create new notes  
+- Edit existing notes  
+- Delete notes  
+- View all notes associated with their account  
 
-**☁️ Deployment**
+Each note contains:
 
-1. Deployed on Render
-2. Gunicorn production server
-3. Environment variable-based configuration
-4. CSRF secret management in production
+- Title  
+- Subject  
+- Content  
+- Optional external resource link  
+- Relational tags  
+
+Notes are securely tied to the authenticated user and cannot be accessed across accounts.
+
+---
+
+## 🏷 Relational Tagging System
+
+ScholarDesk implements a many-to-many relational tagging model using SQLAlchemy.
+
+Instead of storing tags as simple comma-separated strings, tags are:
+
+- Stored as independent database entities  
+- Linked to notes through an association table  
+- Normalised (stored in lowercase)  
+- Reusable across multiple notes  
+- Queryable using relational joins  
+
+This design ensures:
+
+- Proper database normalisation  
+- Scalable tag management  
+- Accurate filtering  
+- No substring-based filtering hacks  
+
+---
+
+## 🔎 Advanced Search & Filtering
+
+ScholarDesk supports database-level filtering using SQLAlchemy query composition.
+
+Users can:
+
+- Search by keyword (title and content)  
+- Filter by subject  
+- Filter by tag  
+- Combine multiple filters in a single query  
+
+Filtering is executed at the database level using:
+
+- `ilike()` for case-insensitive matching  
+- SQLAlchemy joins for relational tag filtering  
+- Query chaining for combined filters  
+
+This ensures efficient, scalable querying even as data grows.
+
+---
+
+## 🔗 Resource Linking
+
+Each note may optionally include an external reference link.
+
+Features:
+
+- Clickable links open in a new tab  
+- Enables integration with textbooks, documentation, research papers, or tutorials  
+- Allows ScholarDesk to function as a lightweight knowledge management system  
+
+---
+
+## 🌐 API Endpoints
+
+ScholarDesk exposes authenticated REST-style JSON endpoints:
+
+### `/api/user`
+Returns authenticated user information.
+
+### `/api/notes`
+Returns all notes belonging to the authenticated user, including relational tags.
+
+Example response:
+
+```json
+{
+  "id": 1,
+  "title": "Flask Basics",
+  "subject": "Computer Science",
+  "tags": ["backend", "flask", "api"],
+  "resource_link": "https://flask.palletsprojects.com/"
+}
+```
+
+This demonstrates:
+
+- Secure API routing  
+- Backend serialization  
+- JSON response structuring  
+- Relational data transformation  
+
+---
+
+## 🎨 UI & UX
+
+- Bootstrap 5 responsive layout  
+- Clean navigation bar with authentication awareness  
+- Flash messaging system for user feedback  
+- Card-based note display  
+- Persistent search/filter inputs  
+- Clean and structured layout for readability  
+
+The interface prioritises clarity and usability over visual complexity.
+
+---
+
+## ☁️ Deployment & Production Configuration
+
+ScholarDesk is deployed on Render using:
+
+- PostgreSQL cloud database  
+- Gunicorn WSGI production server  
+- Environment variable-based configuration  
+- Automatic table creation on startup  
+- Secure secret key management  
+
+The application supports:
+
+- SQLite (local development)  
+- PostgreSQL (production environment)  
+
+Database configuration automatically adapts based on environment variables.
+
+---
 
 # 🛠 Tech Stack
 
-**Backend**
-1. Python 3
-2. Flask
-3. Flask-Login
-4. Flask-WTF
-5. Flask-Bcrypt
-6. Flask-SQLAlchemy
+## Backend
 
-**Database**
-1. SQLite (development)
-2. Cloud-hosted database (Render environment)
+- Python 3  
+- Flask  
+- Flask-Login  
+- Flask-WTF  
+- Flask-Bcrypt  
+- Flask-SQLAlchemy  
+- SQLAlchemy ORM  
 
-**Frontend**
-1. HTML (Jinja2 templating)
-2. Bootstrap 5
+## Database
 
-**Testing**
-1. Pytest
-2. pytest-flask
+- SQLite (development)  
+- PostgreSQL (production, Render-hosted)  
 
-**Deployment**
-1. Render (Web Service)
-2. Gunicorn (WSGI server)
+## Frontend
+
+- HTML  
+- Jinja2 templating  
+- Bootstrap 5  
+
+## Testing
+
+- Pytest  
+- pytest-flask  
+
+## Deployment
+
+- Render Web Service  
+- Gunicorn  
+
+---
 
 # 📦 Project Structure
+
 ```
 scholardesk/
 │
@@ -92,77 +213,95 @@ scholardesk/
 └── README.md
 ```
 
-1. app.py – Application routes and configuration
-2. models.py – SQLAlchemy models
-3. forms.py – Flask-WTF forms
-4. extensions.py – Database and extension initialization
-5. templates/ – Jinja2 HTML templates
-6. tests/ – Basic pytest suite
+- `app.py` – Routes, configuration, filtering logic  
+- `models.py` – SQLAlchemy models (User, Note, Tag, association table)  
+- `forms.py` – Flask-WTF forms  
+- `extensions.py` – Extension initialisation  
+- `templates/` – Jinja2 templates  
+- `tests/` – Basic pytest suite  
+
+---
 
 # 💻 Running Locally
 
-**1️⃣ Clone the repository**
-```
+## 1. Clone the repository
+
+```bash
 git clone https://github.com/JayanthSahasranamamula/scholardesk.git
 cd scholardesk
 ```
 
-**2️⃣ Create virtual environment**
-```
+## 2. Create a virtual environment
+
+```bash
 python -m venv venv
-venv\Scripts\activate   (Windows)
-source venv/bin/activate  (Mac/Linux)
 ```
 
-**3️⃣ Install dependencies**
-`pip install -r requirements.txt`
+Activate:
 
-**4️⃣ Run the application**
-`python app.py`
+- Windows:
+  ```bash
+  venv\Scripts\activate
+  ```
 
-Visit http://127.0.0.1:5000
+- macOS/Linux:
+  ```bash
+  source venv/bin/activate
+  ```
+
+## 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## 4. Run the application
+
+```bash
+python app.py
+```
+
+Visit:
+
+```
+http://127.0.0.1:5000
+```
+
+---
 
 # 🧪 Running Tests
 
-`pytest`
+Run:
 
-This runs the basic test suite covering:
-1. Homepage availability
-2. Login page
-3. Register page
-4. API authentication behavior
+```bash
+pytest
+```
 
-# 🌐 Live Demo
+The test suite validates:
 
-A live version of the application is available at: https://scholardesk.onrender.com.
-All features can be tested **directly** through the deployed instance.
+- Homepage availability  
+- Login and registration routes  
+- Basic API authentication behaviour  
 
-# 🧠 What This Project Demonstrates
-
-This project reflects practical understanding of:
-1. Authentication workflows
-2. Secure password handling
-3. CSRF protection
-4. Relational database modeling
-5. REST-style API design
-6. Cloud deployment
-7. Production configuration
-8. Debugging production errors
-9. Code refactoring and modularisation
-10. Basic automated testing
-ScholarDesk was built incrementally, with structured refactoring and deployment as part of the learning process.
-
-# 🔮 Possible Future Improvements
-
-1. PostgreSQL integration for full production persistence
-2. Advanced search and filtering
-3. Tag-based filtering
-4. User profile management
-5. Pagination for large note sets
+---
 
 # 📌 Final Note
-ScholarDesk is not just a note-taking application. It represents a complete backend lifecycle:
+
+ScholarDesk represents a complete backend lifecycle:
 
 Design → Build → Refactor → Test → Deploy → Debug → Stabilise
 
-The focus of this project was to build a clean, structured, production-aware Flask application that demonstrates backend fundamentals and deployment readiness.
+It demonstrates:
+
+- Authentication workflows  
+- Secure password handling  
+- CSRF protection  
+- Many-to-many relational modelling  
+- SQLAlchemy query composition  
+- Database-level filtering  
+- REST-style API design  
+- Cloud deployment with PostgreSQL  
+- Production configuration management  
+- Incremental refactoring and structured iteration  
+
+This project reflects practical backend engineering and deployment readiness.
