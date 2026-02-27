@@ -376,10 +376,17 @@ def api_notes():
 
     return jsonify(serialized_notes)
 
-
 # =====================
 # Database Initialisation
 # =====================
 
 with app.app_context():
     db.create_all()
+
+
+# =====================
+# Local Development Runner
+# =====================
+
+if __name__ == "__main__":
+    app.run(debug=True)
