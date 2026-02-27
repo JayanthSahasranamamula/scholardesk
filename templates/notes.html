@@ -17,7 +17,7 @@
                         name="q"
                         class="form-control"
                         placeholder="Search title or content"
-                        value="{{ request.args.get('q', '') }}"
+                        value="{{ search_query }}"
                     >
                 </div>
 
@@ -27,7 +27,7 @@
                         name="subject"
                         class="form-control"
                         placeholder="Filter by subject"
-                        value="{{ request.args.get('subject', '') }}"
+                        value="{{ subject_filter }}"
                     >
                 </div>
 
@@ -37,7 +37,7 @@
                         name="tag"
                         class="form-control"
                         placeholder="Filter by tag"
-                        value="{{ request.args.get('tag', '') }}"
+                        value="{{ tag_filter }}"
                     >
                 </div>
 
@@ -49,9 +49,10 @@
 
             </div>
 
-            {% if request.args %}
+            {% if search_query or subject_filter or tag_filter %}
                 <div class="mt-3">
-                    <a href="{{ url_for('notes') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ url_for('notes') }}"
+                       class="btn btn-sm btn-outline-secondary">
                         Clear Filters
                     </a>
                 </div>
@@ -97,14 +98,14 @@
                 </p>
 
                 {% if note.tags %}
-    <div class="mb-2">
-        {% for tag in note.tags %}
-            <span class="badge bg-secondary me-1">
-                {{ tag.name }}
-            </span>
-        {% endfor %}
-    </div>
-{% endif %}
+                    <div class="mb-2">
+                        {% for tag in note.tags %}
+                            <span class="badge bg-secondary me-1">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
 
                 {% if note.resource_link %}
                     <p>
@@ -136,6 +137,66 @@
     <div class="alert alert-info">
         No notes found.
     </div>
+
+{% endif %}
+
+
+<!-- ===================== -->
+<!-- Pagination Controls  -->
+<!-- ===================== -->
+
+{% if pagination and pagination.pages > 1 %}
+
+<nav aria-label="Notes pagination">
+    <ul class="pagination justify-content-center mt-4">
+
+        {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="{{ url_for('notes',
+                                    page=pagination.prev_num,
+                                    q=search_query,
+                                    subject=subject_filter,
+                                    tag=tag_filter) }}">
+                    Previous
+                </a>
+            </li>
+        {% endif %}
+
+        {% for p in pagination.iter_pages() %}
+            {% if p %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link"
+                       href="{{ url_for('notes',
+                                        page=p,
+                                        q=search_query,
+                                        subject=subject_filter,
+                                        tag=tag_filter) }}">
+                        {{ p }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="{{ url_for('notes',
+                                    page=pagination.next_num,
+                                    q=search_query,
+                                    subject=subject_filter,
+                                    tag=tag_filter) }}">
+                    Next
+                </a>
+            </li>
+        {% endif %}
+
+    </ul>
+</nav>
 
 {% endif %}
 

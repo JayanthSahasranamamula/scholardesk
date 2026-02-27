@@ -63,16 +63,17 @@ def home():
 
 
 # =====================
-# Notes (Search + Relational Tag Filtering)
+# Notes (Search + Tag Filtering + Pagination)
 # =====================
 
 @app.route("/notes")
 @login_required
 def notes():
 
-    search_query = request.args.get("q")
-    subject_filter = request.args.get("subject")
-    tag_filter = request.args.get("tag")
+    search_query = request.args.get("q", "")
+    subject_filter = request.args.get("subject", "")
+    tag_filter = request.args.get("tag", "")
+    page = request.args.get("page", 1, type=int)
 
     query = Note.query.filter_by(user_id=current_user.id)
 
@@ -91,14 +92,19 @@ def notes():
 
     if tag_filter:
         query = query.join(Note.tags).filter(
-            Tag.name.ilike(f"%{tag_filter.lower()}%")
+            Tag.name.ilike(f"%{tag_filter}%")
         )
 
-    filtered_notes = query.distinct().all()
+    pagination = query.order_by(Note.id.desc()).paginate(
+        page=page,
+        per_page=5,
+        error_out=False
+    )
 
     return render_template(
         "notes.html",
-        notes=filtered_notes
+        notes=pagination.items,
+        pagination=pagination
     )
 
 
@@ -109,58 +115,50 @@ def notes():
 @app.route("/register", methods=["GET", "POST"])
 def register():
 
-    registration_form = RegistrationForm()
+    form = RegistrationForm()
 
-    if registration_form.validate_on_submit():
+    if form.validate_on_submit():
 
         hashed_password = bcrypt.generate_password_hash(
-            registration_form.password.data
+            form.password.data
         ).decode("utf-8")
 
-        new_user = User(
-            username=registration_form.username.data,
-            email=registration_form.email.data,
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
             password=hashed_password
         )
 
-        db.session.add(new_user)
+        db.session.add(user)
         db.session.commit()
 
         flash("Account created! You can now log in.", "success")
-
         return redirect(url_for("login"))
 
-    return render_template(
-        "register.html",
-        form=registration_form
-    )
+    return render_template("register.html", form=form)
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
-    login_form = LoginForm()
+    form = LoginForm()
 
-    if login_form.validate_on_submit():
+    if form.validate_on_submit():
 
-        existing_user = User.query.filter_by(
-            email=login_form.email.data
+        user = User.query.filter_by(
+            email=form.email.data
         ).first()
 
-        if existing_user and bcrypt.check_password_hash(
-            existing_user.password,
-            login_form.password.data
+        if user and bcrypt.check_password_hash(
+            user.password,
+            form.password.data
         ):
-
-            login_user(existing_user)
+            login_user(user)
             return redirect(url_for("home"))
 
         flash("Login failed. Check email and password.", "danger")
 
-    return render_template(
-        "login.html",
-        form=login_form
-    )
+    return render_template("login.html", form=form)
 
 
 @app.route("/logout")
@@ -169,47 +167,42 @@ def logout():
     logout_user()
     return redirect(url_for("home"))
 
+
+# =====================
+# Profile Management
+# =====================
+
 @app.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
 
-    update_form = UpdateProfileForm(
-        obj=current_user
-    )
-
+    update_form = UpdateProfileForm(obj=current_user)
     password_form = ChangePasswordForm()
 
-    # Handle profile update
-    if update_form.submit.data and update_form.validate_on_submit():
-
+    if update_form.validate_on_submit() and update_form.submit.data:
         current_user.username = update_form.username.data
         current_user.email = update_form.email.data
-
         db.session.commit()
-
         flash("Profile updated successfully.", "success")
         return redirect(url_for("profile"))
 
-    # Handle password change
-    if password_form.submit.data and password_form.validate_on_submit():
+    if password_form.validate_on_submit() and password_form.submit.data:
 
         if bcrypt.check_password_hash(
             current_user.password,
             password_form.current_password.data
         ):
-
-            new_hashed_password = bcrypt.generate_password_hash(
+            new_password = bcrypt.generate_password_hash(
                 password_form.new_password.data
             ).decode("utf-8")
 
-            current_user.password = new_hashed_password
+            current_user.password = new_password
             db.session.commit()
 
             flash("Password updated successfully.", "success")
             return redirect(url_for("profile"))
 
-        else:
-            flash("Current password is incorrect.", "danger")
+        flash("Current password is incorrect.", "danger")
 
     return render_template(
         "profile.html",
@@ -217,16 +210,18 @@ def profile():
         password_form=password_form
     )
 
+
 @app.route("/delete_account", methods=["POST"])
 @login_required
 def delete_account():
 
+    logout_user()
     db.session.delete(current_user)
     db.session.commit()
 
     flash("Your account has been deleted.", "info")
-
     return redirect(url_for("home"))
+
 
 # =====================
 # Notes CRUD
@@ -236,20 +231,19 @@ def delete_account():
 @login_required
 def new_note():
 
-    note_form = NoteForm()
+    form = NoteForm()
 
-    if note_form.validate_on_submit():
+    if form.validate_on_submit():
 
-        new_note = Note(
-            title=note_form.title.data,
-            content=note_form.content.data,
-            subject=note_form.subject.data,
-            resource_link=note_form.resource_link.data,
-            user=current_user
+        note = Note(
+            title=form.title.data,
+            content=form.content.data,
+            subject=form.subject.data,
+            resource_link=form.resource_link.data,
+            user_id=current_user.id
         )
 
-        # Process tags (many-to-many)
-        tag_names = note_form.tags.data.split(",")
+        tag_names = form.tags.data.split(",")
 
         for name in tag_names:
             clean_name = name.strip().lower()
@@ -261,16 +255,16 @@ def new_note():
                     tag = Tag(name=clean_name)
                     db.session.add(tag)
 
-                new_note.tags.append(tag)
+                note.tags.append(tag)
 
-        db.session.add(new_note)
+        db.session.add(note)
         db.session.commit()
 
         return redirect(url_for("notes"))
 
     return render_template(
         "note_form.html",
-        form=note_form,
+        form=form,
         legend="New Note"
     )
 
@@ -279,24 +273,23 @@ def new_note():
 @login_required
 def edit_note(note_id):
 
-    existing_note = Note.query.get_or_404(note_id)
+    note = Note.query.get_or_404(note_id)
 
-    if existing_note.user != current_user:
+    if note.user_id != current_user.id:
         return redirect(url_for("notes"))
 
-    note_form = NoteForm(obj=existing_note)
+    form = NoteForm(obj=note)
 
-    if note_form.validate_on_submit():
+    if form.validate_on_submit():
 
-        existing_note.title = note_form.title.data
-        existing_note.content = note_form.content.data
-        existing_note.subject = note_form.subject.data
-        existing_note.resource_link = note_form.resource_link.data
+        note.title = form.title.data
+        note.content = form.content.data
+        note.subject = form.subject.data
+        note.resource_link = form.resource_link.data
 
-        # Clear existing tags
-        existing_note.tags.clear()
+        note.tags.clear()
 
-        tag_names = note_form.tags.data.split(",")
+        tag_names = form.tags.data.split(",")
 
         for name in tag_names:
             clean_name = name.strip().lower()
@@ -308,18 +301,16 @@ def edit_note(note_id):
                     tag = Tag(name=clean_name)
                     db.session.add(tag)
 
-                existing_note.tags.append(tag)
+                note.tags.append(tag)
 
         db.session.commit()
-
         return redirect(url_for("notes"))
 
-    # Prepopulate tags field as comma string
-    note_form.tags.data = ", ".join(tag.name for tag in existing_note.tags)
+    form.tags.data = ", ".join(tag.name for tag in note.tags)
 
     return render_template(
         "note_form.html",
-        form=note_form,
+        form=form,
         legend="Edit Note"
     )
 
@@ -328,12 +319,12 @@ def edit_note(note_id):
 @login_required
 def delete_note(note_id):
 
-    existing_note = Note.query.get_or_404(note_id)
+    note = Note.query.get_or_404(note_id)
 
-    if existing_note.user != current_user:
+    if note.user_id != current_user.id:
         return redirect(url_for("notes"))
 
-    db.session.delete(existing_note)
+    db.session.delete(note)
     db.session.commit()
 
     return redirect(url_for("notes"))
@@ -358,26 +349,25 @@ def api_user():
 @login_required
 def api_notes():
 
-    user_notes = Note.query.filter_by(
+    notes = Note.query.filter_by(
         user_id=current_user.id
     ).all()
 
-    serialized_notes = []
-
-    for note in user_notes:
-        serialized_notes.append({
+    return jsonify([
+        {
             "id": note.id,
             "title": note.title,
             "content": note.content,
             "subject": note.subject,
             "tags": [tag.name for tag in note.tags],
             "resource_link": note.resource_link
-        })
+        }
+        for note in notes
+    ])
 
-    return jsonify(serialized_notes)
 
 # =====================
-# Database Initialisation
+# Database Init
 # =====================
 
 with app.app_context():
@@ -385,7 +375,7 @@ with app.app_context():
 
 
 # =====================
-# Local Development Runner
+# Local Runner
 # =====================
 
 if __name__ == "__main__":
