@@ -215,8 +215,11 @@ def profile():
 @login_required
 def delete_account():
 
-    logout_user()
-    db.session.delete(current_user)
+    user = current_user  # capture real user first
+
+    logout_user()  # end session
+
+    db.session.delete(user)
     db.session.commit()
 
     flash("Your account has been deleted.", "info")
