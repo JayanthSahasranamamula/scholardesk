@@ -215,9 +215,9 @@ def profile():
 @login_required
 def delete_account():
 
-    user = current_user  # capture real user first
+    user = current_user._get_current_object()
 
-    logout_user()  # end session
+    logout_user()
 
     db.session.delete(user)
     db.session.commit()
