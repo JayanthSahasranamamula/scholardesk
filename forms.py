@@ -12,6 +12,8 @@ from wtforms.validators import (
     EqualTo
 )
 
+from wtforms.validators import Optional
+
 # =====================
 # Authentication Forms
 # =====================
@@ -86,3 +88,38 @@ class NoteForm(FlaskForm):
     )
 
     submit = SubmitField("Save")
+
+
+class UpdateProfileForm(FlaskForm):
+
+    username = StringField(
+        "Username",
+        validators=[DataRequired(), Length(min=2, max=20)]
+    )
+
+    email = StringField(
+        "Email",
+        validators=[DataRequired(), Email()]
+    )
+
+    submit = SubmitField("Update Profile")
+
+
+class ChangePasswordForm(FlaskForm):
+
+    current_password = PasswordField(
+        "Current Password",
+        validators=[DataRequired()]
+    )
+
+    new_password = PasswordField(
+        "New Password",
+        validators=[DataRequired()]
+    )
+
+    confirm_new_password = PasswordField(
+        "Confirm New Password",
+        validators=[DataRequired(), EqualTo("new_password")]
+    )
+
+    submit = SubmitField("Change Password")

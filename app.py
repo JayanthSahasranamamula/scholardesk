@@ -1,7 +1,13 @@
 from flask import Flask, render_template, redirect, url_for, flash, jsonify, request
 from flask_login import login_user, logout_user, login_required, current_user
 from models import User, Note, Tag
-from forms import RegistrationForm, LoginForm, NoteForm
+from forms import (
+    RegistrationForm,
+    LoginForm,
+    NoteForm,
+    UpdateProfileForm,
+    ChangePasswordForm
+)
 from extensions import db, bcrypt, login_manager
 from sqlalchemy import or_
 import os
@@ -163,6 +169,64 @@ def logout():
     logout_user()
     return redirect(url_for("home"))
 
+@app.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+
+    update_form = UpdateProfileForm(
+        obj=current_user
+    )
+
+    password_form = ChangePasswordForm()
+
+    # Handle profile update
+    if update_form.submit.data and update_form.validate_on_submit():
+
+        current_user.username = update_form.username.data
+        current_user.email = update_form.email.data
+
+        db.session.commit()
+
+        flash("Profile updated successfully.", "success")
+        return redirect(url_for("profile"))
+
+    # Handle password change
+    if password_form.submit.data and password_form.validate_on_submit():
+
+        if bcrypt.check_password_hash(
+            current_user.password,
+            password_form.current_password.data
+        ):
+
+            new_hashed_password = bcrypt.generate_password_hash(
+                password_form.new_password.data
+            ).decode("utf-8")
+
+            current_user.password = new_hashed_password
+            db.session.commit()
+
+            flash("Password updated successfully.", "success")
+            return redirect(url_for("profile"))
+
+        else:
+            flash("Current password is incorrect.", "danger")
+
+    return render_template(
+        "profile.html",
+        update_form=update_form,
+        password_form=password_form
+    )
+
+@app.route("/delete_account", methods=["POST"])
+@login_required
+def delete_account():
+
+    db.session.delete(current_user)
+    db.session.commit()
+
+    flash("Your account has been deleted.", "info")
+
+    return redirect(url_for("home"))
 
 # =====================
 # Notes CRUD

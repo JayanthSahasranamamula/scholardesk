@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2>Profile</h2>
+    <p class="text-muted">
+        Account created on {{ current_user.created_at.strftime("%B %d, %Y") }}
+    </p>
+
+    <hr>
+
+    <!-- Update Profile -->
+    <h4>Update Information</h4>
+    <form method="POST">
+        {{ update_form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ update_form.username.label(class="form-label") }}
+            {{ update_form.username(class="form-control") }}
+        </div>
+
+        <div class="mb-3">
+            {{ update_form.email.label(class="form-label") }}
+            {{ update_form.email(class="form-control") }}
+        </div>
+
+        {{ update_form.submit(class="btn btn-primary") }}
+    </form>
+
+    <hr>
+
+    <!-- Change Password -->
+    <h4>Change Password</h4>
+    <form method="POST">
+        {{ password_form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ password_form.current_password.label(class="form-label") }}
+            {{ password_form.current_password(class="form-control") }}
+        </div>
+
+        <div class="mb-3">
+            {{ password_form.new_password.label(class="form-label") }}
+            {{ password_form.new_password(class="form-control") }}
+        </div>
+
+        <div class="mb-3">
+            {{ password_form.confirm_new_password.label(class="form-label") }}
+            {{ password_form.confirm_new_password(class="form-control") }}
+        </div>
+
+        {{ password_form.submit(class="btn btn-warning") }}
+    </form>
+
+    <hr>
+
+    <!-- Delete Account -->
+    <h4 class="text-danger">Danger Zone</h4>
+
+    <form method="POST" action="{{ url_for('delete_account') }}">
+        <button type="submit" class="btn btn-danger">
+            Delete My Account
+        </button>
+    </form>
+
+</div>
+
+{% endblock %}
